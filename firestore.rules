@@ -1,0 +1,186 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All data created by a user,
+ * including their profile, role specifications, roadmaps, and tasks, is stored within a dedicated
+ * data tree under their unique user ID. This ensures that users can only access and modify their own
+ * information, providing strong data isolation.
+ *
+ * Data Structure: The data is organized hierarchically. A top-level `/users/{userId}` collection
+ * acts as the root for all user-specific data. All personal entities like `roleSpecs`, `roadmaps`,
+ * and `tasks` are nested as subcollections within this structure. This path-based ownership is the
+ * primary mechanism for authorization. A top-level `/resources` collection holds publicly viewable
+ * learning materials.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only read or write data located under `/users/{request.auth.uid}`.
+ *   They cannot access, or even know about, the data of other users.
+ * - Public Data: The `/resources` collection is publicly readable by anyone, but write access is
+ *   denied entirely, making it a curated, read-only dataset. App administrators must populate this
+ *   data directly or through a trusted backend service.
+ * - Relational Security (`roadmapResources`): The `/roadmapResources` collection links a user's private
+ *   roadmap to a public resource. To secure this, these rules require that a `userId` field,
+ *   matching the roadmap's owner, be denormalized onto the `roadmapResources` document. This
+ *   enables a fast and secure check without needing costly lookups.
+ * - No User Listing: The top-level `/users` collection cannot be listed to protect user privacy.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for reusable logic
+    /**
+     * isSignedIn
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * isOwner
+     * Checks if the authenticated user's UID matches the given userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * isExistingOwner
+     * Checks for ownership on an existing document. Used for update/delete.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * isNewUserDocumentValid
+     * Validates that a user document being created has an 'id' that matches the document's path ID.
+     */
+    function isNewUserDocumentValid(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * isExistingUserDocumentValid
+     * Enforces immutability of the user's unique 'id' field on update.
+     */
+    function isExistingUserDocumentValid() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * isNewOwnedDocumentValid
+     * On create, validates that a subcollection document's 'user_id' field matches the owner's path ID.
+     */
+    function isNewOwnedDocumentValid(userId) {
+      return request.resource.data.user_id == userId;
+    }
+
+    /**
+     * isExistingOwnedDocumentValid
+     * On update, enforces immutability of the document's 'user_id' ownership field.
+     */
+    function isExistingOwnedDocumentValid() {
+      return request.resource.data.user_id == resource.data.user_id;
+    }
+
+    /**
+     * @description   Stores user profile data. Each user can create their own profile and has
+     *                full control over it. Users cannot be listed.
+     * @path          /users/{userId}
+     * @allow         (create) An authenticated user creating their own profile: auth.uid === userId.
+     * @deny          (get) An authenticated user trying to read another user's profile.
+     * @principle     Enforces Self-Creation and Ownership. A user's root document can only be
+     *                created and managed by the user themselves.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isNewUserDocumentValid(userId);
+      allow update: if isExistingOwner(userId) && isExistingUserDocumentValid();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description   Stores job role specifications created by a user.
+     * @path          /users/{userId}/roleSpecs/{roleSpecId}
+     * @allow         (create, update, delete) A user managing their own role spec.
+     * @deny          (list) User 'A' trying to list role specs for user 'B'.
+     * @principle     Restricts access to a user's own data tree. Inherits ownership from the path.
+     */
+    match /users/{userId}/roleSpecs/{roleSpecId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isNewOwnedDocumentValid(userId);
+      allow update: if isExistingOwner(userId) && isExistingOwnedDocumentValid();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description   Stores personalized learning roadmaps created by a user.
+     * @path          /users/{userId}/roadmaps/{roadmapId}
+     * @allow         (get, list) A user reading their own roadmaps.
+     * @deny          (create) User 'A' trying to create a roadmap for user 'B'.
+     * @principle     Restricts access to a user's own data tree. Inherits ownership from the path.
+     */
+    match /users/{userId}/roadmaps/{roadmapId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isNewOwnedDocumentValid(userId);
+      allow update: if isExistingOwner(userId) && isExistingOwnedDocumentValid();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description   Stores tasks associated with a user's specific roadmap.
+     * @path          /users/{userId}/roadmaps/{roadmapId}/tasks/{taskId}
+     * @allow         (create) A user adding a new task to one of their own roadmaps.
+     * @deny          (update) A user trying to update a task in someone else's roadmap.
+     * @principle     Restricts access to a user's own data tree. Validates relational integrity
+     *                with the parent roadmap.
+     */
+    match /users/{userId}/roadmaps/{roadmapId}/tasks/{taskId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.roadmapId == roadmapId;
+      allow update: if isExistingOwner(userId) && request.resource.data.roadmapId == resource.data.roadmapId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description   Stores curated learning resources that are available to all users. This data
+     *                is public to read but cannot be modified by clients.
+     * @path          /resources/{resourceId}
+     * @allow         (get, list) Any user, authenticated or not, can read resources.
+     * @deny          (create, update, delete) Any client trying to modify the resource list.
+     * @principle     Implements a Public Read with Admin-Only Writes pattern. As the schema lacks
+     *                an ownership field, all client writes are securely disabled.
+     */
+    match /resources/{resourceId} {
+      allow get: if true;
+      allow list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'Resource' entity is missing an 'ownerId' or 'authorId' field.
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description   A join collection linking a user's private roadmap to a public resource.
+     *                A user can only create or delete links for their own roadmaps.
+     * @path          /roadmapResources/{roadmapResourceId}
+     * @allow         (create) A user linking a resource to their own roadmap.
+     * @deny          (list) Any user trying to list all roadmap-resource links.
+     * @principle     Enforces ownership via a denormalized `userId` field on the document. This
+     *                prevents a user from creating links on behalf of others.
+     */
+    match /roadmapResources/{roadmapResourceId} {
+      // NOTE: A user can only read/delete their own links. This requires a 'userId' field on the document.
+      allow get: if resource.data.userId == request.auth.uid;
+      allow list: if false;
+      // NOTE: Creating a link requires the client to provide the 'userId' of the roadmap owner, which must be them.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false; // Links should be created or deleted, not updated.
+      allow delete: if resource != null && resource.data.userId == request.auth.uid;
+    }
+  }
+}

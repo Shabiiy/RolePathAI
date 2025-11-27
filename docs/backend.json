@@ -1,0 +1,338 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the RolePath AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email",
+        "name"
+      ]
+    },
+    "RoleSpec": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoleSpec",
+      "type": "object",
+      "description": "Represents a job role specification template, including the role name, description, and other relevant details.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RoleSpec entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the job role (e.g., 'Junior Data Engineer')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the job role and its responsibilities."
+        },
+        "phases": {
+          "type": "array",
+          "description": "List of phases in the roadmap.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "user_id": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N RoleSpec)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "phases",
+        "user_id"
+      ]
+    },
+    "Roadmap": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Roadmap",
+      "type": "object",
+      "description": "Represents a personalized learning roadmap for a specific job role.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Roadmap entity."
+        },
+        "roleSpecId": {
+          "type": "string",
+          "description": "Reference to RoleSpec. (Relationship: RoleSpec 1:N Roadmap)"
+        },
+        "phases": {
+          "type": "array",
+          "description": "Phases of the roadmap",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mermaidSyntax": {
+          "type": "string",
+          "description": "Mermaid syntax representation of the roadmap mindmap."
+        },
+        "user_id": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Roadmap)"
+        }
+      },
+      "required": [
+        "id",
+        "roleSpecId",
+        "phases",
+        "mermaidSyntax",
+        "user_id"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a specific task within a weekly plan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Task entity."
+        },
+        "roadmapId": {
+          "type": "string",
+          "description": "Reference to Roadmap. (Relationship: Roadmap 1:N Task)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the task to be completed."
+        },
+        "estimatedHours": {
+          "type": "number",
+          "description": "Estimated hours required to complete the task."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates whether the task has been completed."
+        }
+      },
+      "required": [
+        "id",
+        "roadmapId",
+        "description",
+        "estimatedHours",
+        "completed"
+      ]
+    },
+    "Resource": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Resource",
+      "type": "object",
+      "description": "Represents a curated learning resource.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Resource entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the learning resource."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the learning resource.",
+          "format": "uri"
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the learning resource."
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags associated with the resource (e.g., 'python', 'machine learning').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "level": {
+          "type": "string",
+          "description": "The difficulty level of the resource (e.g., 'beginner', 'intermediate', 'advanced')."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "url",
+        "description",
+        "tags",
+        "level"
+      ]
+    },
+    "RoadmapResource": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoadmapResource",
+      "type": "object",
+      "description": "Represents the relationship between a Roadmap and a Resource.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RoadmapResource entity."
+        },
+        "roadmapId": {
+          "type": "string",
+          "description": "Reference to Roadmap. (Relationship: Roadmap N:N Resource)"
+        },
+        "resourceId": {
+          "type": "string",
+          "description": "Reference to Resource. (Relationship: Roadmap N:N Resource)"
+        }
+      },
+      "required": [
+        "id",
+        "roadmapId",
+        "resourceId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile data.  Root path for all user-owned data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/roleSpecs/{roleSpecId}",
+        "definition": {
+          "entityName": "RoleSpec",
+          "schema": {
+            "$ref": "#/backend/entities/RoleSpec"
+          },
+          "description": "Stores job role specification templates created by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "roleSpecId",
+              "description": "The unique identifier of the role specification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/roadmaps/{roadmapId}",
+        "definition": {
+          "entityName": "Roadmap",
+          "schema": {
+            "$ref": "#/backend/entities/Roadmap"
+          },
+          "description": "Stores personalized learning roadmaps for a specific job role created by the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "roadmapId",
+              "description": "The unique identifier of the roadmap."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/roadmaps/{roadmapId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores specific tasks within a weekly plan associated with a roadmap.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "roadmapId",
+              "description": "The unique identifier of the roadmap."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique identifier of the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/resources/{resourceId}",
+        "definition": {
+          "entityName": "Resource",
+          "schema": {
+            "$ref": "#/backend/entities/Resource"
+          },
+          "description": "Stores curated learning resources available to all users.",
+          "params": [
+            {
+              "name": "resourceId",
+              "description": "The unique identifier of the resource."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roadmapResources/{roadmapResourceId}",
+        "definition": {
+          "entityName": "RoadmapResource",
+          "schema": {
+            "$ref": "#/backend/entities/RoadmapResource"
+          },
+          "description": "Stores the relationship between a Roadmap and a Resource.",
+          "params": [
+            {
+              "name": "roadmapResourceId",
+              "description": "The unique identifier of the RoadmapResource."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the \"RolePath AI\" application, focusing on personalized learning roadmaps. The design prioritizes authorization independence and clear security rules.  User-owned data is stored under the `/users/{userId}` path, ensuring secure access to personal roadmaps and related entities. RoleSpec, Roadmap, and Task entities are all nested under the user, establishing clear ownership. The RoadmapResource collection establishes the many-to-many relationship between roadmaps and resources. This approach eliminates the need for complex `get()` calls in security rules, enforcing authorization independence. \n\n**Authorization Independence:** Achieved by nesting all user-specific data under the `/users/{userId}` path.  Security rules can directly verify `request.auth.uid == userId` without needing to fetch parent document data.\n\n**QAPs (Rules are not Filters):** Supported through structural segregation. Each collection has a defined security posture. User-specific data resides under `/users/{userId}`, which prevents unauthorized listing of roadmaps or other user-specific resources.  Listing resources will be open to all, filtering the correct resources will be done on the client-side with the data retreived.\n\n**DBAC (No Custom Claims):** Authorization relies solely on `request.auth.uid`. Roles are not used in this application, so there is no need for custom claims.\n\n**Invariants:** The structure supports the integrity of ownership by using hierarchical paths. This structure inherently enforces ownership and simplifies security rules related to data modification and deletion."
+  }
+}
