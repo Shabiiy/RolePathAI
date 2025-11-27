@@ -47,11 +47,11 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
   const { targetJobRole, currentSkills, weeklyHours, desiredWeeks } = validatedValues.data
 
   const finalJobRole = targetJobRole;
-  
+
   if (!finalJobRole) {
-    return { error: 'A job role must be specified.'}
+    return { error: 'A job role must be specified.' }
   }
-  
+
   const currentSkillList = currentSkills.split(',').map((s) => s.trim()).filter(s => s.toLowerCase() !== 'none' && s);
 
   try {
@@ -73,13 +73,18 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
     ]);
 
 
-    if (!roadmapResult || !roadmapResult.roadmap) {
+    if (!roadmapResult || !roadmapResult.phases) {
       throw new Error('Failed to get a response from the roadmap generation AI.')
     }
-    const { roadmap } = roadmapResult
+
+    // Convert structured phases back to string format for compatibility
+    const roadmap = roadmapResult.phases.map((phase, index) => {
+      const topics = phase.topics.map(t => `- ${t}`).join('\n');
+      return `Phase ${index + 1}: ${phase.title} (${phase.weeks})\n${topics}`;
+    }).join('\n\n');
 
     if (!analysisResult) {
-        throw new Error('Failed to get a response from the skill analysis AI.');
+      throw new Error('Failed to get a response from the skill analysis AI.');
     }
 
     // Dependent generations
@@ -105,10 +110,10 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
       .sort((a, b) => b.confidence - a.confidence)
 
     const tasks = parseRoadmap(roadmap).flatMap(phase => phase.topics.map(topic => ({
-        id: topic.title.replace(/\s+/g, '-').toLowerCase() + '-' + Math.random().toString(36).substring(2,7),
-        text: topic.title,
-        completed: false,
-        xp: 10,
+      id: topic.title.replace(/\s+/g, '-').toLowerCase() + '-' + Math.random().toString(36).substring(2, 7),
+      text: topic.title,
+      completed: false,
+      xp: 10,
     })))
 
 
@@ -137,7 +142,7 @@ const quizFormSchema = z.object({
 })
 
 export async function generateQuizAction(values: z.infer<typeof quizFormSchema>) {
-   if (!process.env.GOOGLE_API_KEY) {
+  if (!process.env.GOOGLE_API_KEY) {
     return {
       error:
         'Missing GOOGLE_API_KEY. Please add it to your .env file to enable AI features.',
@@ -184,25 +189,25 @@ async function handleAIGeneration<T, U>(input: T, schema: z.ZodType<T>, flow: (i
 }
 
 export async function generateResumePointsAction(values: z.infer<typeof GenerateResumePointsInputSchema>) {
-    return handleAIGeneration(values, GenerateResumePointsInputSchema, generateResumePoints);
+  return handleAIGeneration(values, GenerateResumePointsInputSchema, generateResumePoints);
 }
 
 export async function generatePortfolioAdviceAction(values: z.infer<typeof GeneratePortfolioAdviceInputSchema>) {
-    return handleAIGeneration(values, GeneratePortfolioAdviceInputSchema, generatePortfolioAdvice);
+  return handleAIGeneration(values, GeneratePortfolioAdviceInputSchema, generatePortfolioAdvice);
 }
 
 export async function generateInterviewQuestionsAction(values: z.infer<typeof GenerateInterviewQuestionsInputSchema>) {
-    return handleAIGeneration(values, GenerateInterviewQuestionsInputSchema, generateInterviewQuestions);
+  return handleAIGeneration(values, GenerateInterviewQuestionsInputSchema, generateInterviewQuestions);
 }
 
 export async function generateStandardProjectsAction(values: z.infer<typeof GenerateStandardProjectsInputSchema>) {
-    return handleAIGeneration(values, GenerateStandardProjectsInputSchema, generateStandardProjects);
+  return handleAIGeneration(values, GenerateStandardProjectsInputSchema, generateStandardProjects);
 }
 
 export async function compareJobRolesAction(values: z.infer<typeof CompareJobRolesInputSchema>) {
-    return handleAIGeneration(values, CompareJobRolesInputSchema, compareJobRoles);
+  return handleAIGeneration(values, CompareJobRolesInputSchema, compareJobRoles);
 }
 
 export async function generateResourceRecommendationsAction(values: z.infer<typeof GenerateResourceRecommendationsInputSchema>) {
-    return handleAIGeneration(values, GenerateResourceRecommendationsInputSchema, generateResourceRecommendations);
+  return handleAIGeneration(values, GenerateResourceRecommendationsInputSchema, generateResourceRecommendations);
 }

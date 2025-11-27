@@ -8,8 +8,8 @@
  * - GeneratePersonalizedRoadmapOutput - The return type for the generatePersonalizedRoadmap function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GeneratePersonalizedRoadmapInputSchema = z.object({
   targetJobRole: z.string().describe('The target job role for the roadmap.'),
@@ -20,7 +20,11 @@ const GeneratePersonalizedRoadmapInputSchema = z.object({
 export type GeneratePersonalizedRoadmapInput = z.infer<typeof GeneratePersonalizedRoadmapInputSchema>;
 
 const GeneratePersonalizedRoadmapOutputSchema = z.object({
-  roadmap: z.string().describe('The generated learning roadmap with phases and topics.'),
+  phases: z.array(z.object({
+    title: z.string().describe('The title of the phase.'),
+    weeks: z.string().describe('The weeks range for the phase (e.g. "Weeks 1-2").'),
+    topics: z.array(z.string()).describe('List of topics covered in this phase.'),
+  })).describe('The generated learning roadmap phases.'),
 });
 export type GeneratePersonalizedRoadmapOutput = z.infer<typeof GeneratePersonalizedRoadmapOutputSchema>;
 
@@ -32,18 +36,18 @@ export async function generatePersonalizedRoadmap(
 
 const roadmapPrompt = ai.definePrompt({
   name: 'roadmapPrompt',
-  input: {schema: GeneratePersonalizedRoadmapInputSchema},
-  output: {schema: GeneratePersonalizedRoadmapOutputSchema},
+  input: { schema: GeneratePersonalizedRoadmapInputSchema },
+  output: { schema: GeneratePersonalizedRoadmapOutputSchema },
   prompt: `You are an AI career coach who specializes in generating personalized learning roadmaps.
 
-  Based on the user\'s target job role, current skills, time commitment, and desired timeline, generate a learning roadmap with phases and topics.
+  Based on the user\'s target job role, current skills, time commitment, and desired timeline, generate a structured learning roadmap.
 
   Target Job Role: {{{targetJobRole}}}
-Current Skills: {{#each currentSkills}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
-Weekly Hours: {{{weeklyHours}}}
-Desired Weeks: {{{desiredWeeks}}}
-
-  Roadmap:`,
+  Current Skills: {{#each currentSkills}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  Weekly Hours: {{{weeklyHours}}}
+  Desired Weeks: {{{desiredWeeks}}}
+  
+  Generate a list of phases. Each phase should have a title, a weeks range, and a list of topics.`,
 });
 
 const generatePersonalizedRoadmapFlow = ai.defineFlow(
@@ -53,7 +57,7 @@ const generatePersonalizedRoadmapFlow = ai.defineFlow(
     outputSchema: GeneratePersonalizedRoadmapOutputSchema,
   },
   async input => {
-    const {output} = await roadmapPrompt(input);
+    const { output } = await roadmapPrompt(input);
     return output!;
   }
 );

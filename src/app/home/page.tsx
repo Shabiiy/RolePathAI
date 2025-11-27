@@ -41,7 +41,7 @@ export default function HomePage() {
   const { toast } = useToast()
 
   const [state, { addNewRoadmap, setCurrentRoadmap }, isHydrated] = useRolePathStore();
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,15 +51,15 @@ export default function HomePage() {
       desiredWeeks: 12,
     },
   })
-  
+
   // This effect handles routing just for unauthenticated users
   useEffect(() => {
     if (isUserLoading || !isHydrated) return;
 
     if (!user) {
-        router.push('/login');
+      router.push('/login');
     }
-    
+
   }, [user, isUserLoading, isHydrated, router]);
 
   const onSubmit = async (values: FormValues) => {
@@ -70,21 +70,22 @@ export default function HomePage() {
       if (result.error) {
         throw new Error(result.error)
       }
+      console.log('Roadmap generation result:', result);
       if (result.data) {
         const newIndex = addNewRoadmap({
-            inputs: values,
-            roadmap: result.data.roadmap,
-            projects: result.data.projects,
-            resources: result.data.resources,
-            tasks: result.data.tasks,
-            analysis: result.data.analysis,
+          inputs: values,
+          roadmap: result.data.roadmap,
+          projects: result.data.projects,
+          resources: result.data.resources,
+          tasks: result.data.tasks,
+          analysis: result.data.analysis,
         });
         setCurrentRoadmap(newIndex);
         toast({
           title: 'Roadmap Generated!',
           description: 'Your new learning path is ready.',
         })
-        router.push('/home/dashboard');
+        router.push('/home/roadmap');
       }
     } catch (e: any) {
       setError(e.message)
@@ -107,11 +108,11 @@ export default function HomePage() {
       </div>
     );
   }
-  
+
   // If we reach here, it means the user is logged in. Show the form.
   return (
     <main className="container mx-auto p-0 md:p-8">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
