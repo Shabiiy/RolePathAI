@@ -9,7 +9,7 @@ export default function RoadmapPage() {
 
     return (
         <div className="p-4 md:p-8">
-            {currentRoadmap?.roadmap && <RoadmapTab roadmap={currentRoadmap.roadmap} />}
+            {currentRoadmap?.roadmap && <RoadmapTab roadmap={currentRoadmap.roadmap} mindmapImage={currentRoadmap.mindmapImage} />}
         </div>
     )
 }

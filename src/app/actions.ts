@@ -24,6 +24,7 @@ import {
 import { RESOURCES, ROLES } from '@/lib/constants'
 import { parseRoadmap, parseTopics } from '@/lib/parser'
 import type { RoadmapData } from '@/types'
+import { generateMindmap } from '@/ai/flows/generate-mindmap'
 
 const formSchema = z.object({
   targetJobRole: z.string(),
@@ -33,12 +34,7 @@ const formSchema = z.object({
 })
 
 export async function generateFullRoadmap(values: z.infer<typeof formSchema>): Promise<{ data?: Omit<RoadmapData, 'id' | 'createdAt'>; error?: string; }> {
-  if (!process.env.GOOGLE_API_KEY) {
-    return {
-      error:
-        'Missing GOOGLE_API_KEY. Please add it to your .env file to enable AI features.',
-    }
-  }
+
   const validatedValues = formSchema.safeParse(values)
   if (!validatedValues.success) {
     return { error: 'Invalid input values.' }
@@ -55,11 +51,8 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
   const currentSkillList = currentSkills.split(',').map((s) => s.trim()).filter(s => s.toLowerCase() !== 'none' && s);
 
   try {
-    // Run all generation tasks in parallel
-    const [
-      roadmapResult,
-      analysisResult,
-    ] = await Promise.all([
+    // Run initial independent tasks in parallel
+    const [roadmapResult, analysisResult] = await Promise.all([
       generatePersonalizedRoadmap({
         targetJobRole: finalJobRole,
         currentSkills: currentSkillList,
@@ -69,9 +62,8 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
       analyzeSkillGap({
         targetJobRole: finalJobRole,
         currentSkills: currentSkillList,
-      }),
+      })
     ]);
-
 
     if (!roadmapResult || !roadmapResult.phases) {
       throw new Error('Failed to get a response from the roadmap generation AI.')
@@ -83,11 +75,18 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
       return `Phase ${index + 1}: ${phase.title} (${phase.weeks})\n${topics}`;
     }).join('\n\n');
 
+    // Generate Mindmap (Mermaid Syntax)
+    // Reduced delay as we are using a faster/better model now
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const mindmapResult = await generateMindmap({ roadmap: roadmap });
+    const mindmapImage = mindmapResult.mermaid;
+
     if (!analysisResult) {
       throw new Error('Failed to get a response from the skill analysis AI.');
     }
 
     // Dependent generations
+    await new Promise(resolve => setTimeout(resolve, 500));
     const promptsResult = await generateMicroProjectPrompts({ roadmap })
     const projects = promptsResult?.prompts || ['No projects generated.']
 
@@ -96,6 +95,8 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
     const roadmapTopics = parseTopics(roadmap)
     const resourceDescriptions = RESOURCES.map((r) => r.description)
 
+    // Add delay to avoid rate limit
+    await new Promise(resolve => setTimeout(resolve, 500));
     const matchedResourcesIndices = await matchCuratedResources({
       roleSkills,
       roadmapTopics,
@@ -121,6 +122,7 @@ export async function generateFullRoadmap(values: z.infer<typeof formSchema>): P
       data: {
         inputs: validatedValues.data,
         roadmap,
+        mindmapImage,
         projects,
         resources: matchedResources,
         tasks,
@@ -142,12 +144,7 @@ const quizFormSchema = z.object({
 })
 
 export async function generateQuizAction(values: z.infer<typeof quizFormSchema>) {
-  if (!process.env.GOOGLE_API_KEY) {
-    return {
-      error:
-        'Missing GOOGLE_API_KEY. Please add it to your .env file to enable AI features.',
-    }
-  }
+
   const validatedValues = quizFormSchema.safeParse(values)
   if (!validatedValues.success) {
     return { error: 'Invalid input values.' }
@@ -172,9 +169,7 @@ export async function generateQuizAction(values: z.infer<typeof quizFormSchema>)
 }
 
 async function handleAIGeneration<T, U>(input: T, schema: z.ZodType<T>, flow: (input: T) => Promise<U>) {
-  if (!process.env.GOOGLE_API_KEY) {
-    return { error: 'Missing GOOGLE_API_KEY. Please add it to your .env file to enable AI features.' };
-  }
+  // Removed Google API Key check
   const validatedInput = schema.safeParse(input);
   if (!validatedInput.success) {
     return { error: 'Invalid input values.' };

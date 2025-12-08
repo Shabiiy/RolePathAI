@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import Header from '@/components/Header'
 import { FirebaseClientProvider } from '@/firebase'
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { Chatbot } from '@/components/Chatbot/Chatbot'
 
 export const metadata: Metadata = {
   title: 'RolePath AI',
@@ -41,15 +42,16 @@ export default function RootLayout({
       <body
         suppressHydrationWarning
         className={cn(
-        'font-body antialiased min-h-screen bg-background',
-         ptSans.variable,
-         spaceGrotesk.variable,
-         sourceCodePro.variable
+          'font-body antialiased min-h-screen bg-background',
+          ptSans.variable,
+          spaceGrotesk.variable,
+          sourceCodePro.variable
         )}>
         <FirebaseClientProvider>
           <FirebaseErrorListener />
           <Header />
           {children}
+          <Chatbot />
           <Toaster />
         </FirebaseClientProvider>
       </body>

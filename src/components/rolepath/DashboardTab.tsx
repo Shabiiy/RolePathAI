@@ -21,13 +21,19 @@ interface DashboardTabProps {
   onTaskToggle: (taskId: string, completed: boolean) => void
 }
 
+import { useState, useEffect, useRef } from 'react'
+import LevelUpModal from './LevelUpModal'
+
+// ... existing imports
+
 export default function DashboardTab({
   state,
   onTaskToggle,
 }: DashboardTabProps) {
+  // ... existing check for !state
   if (!state) {
     return (
-       <Card>
+      <Card>
         <CardHeader>
           <CardTitle>Dashboard</CardTitle>
         </CardHeader>
@@ -37,7 +43,13 @@ export default function DashboardTab({
       </Card>
     );
   }
+
   const { tasks, projects } = state
+  const [showLevelUp, setShowLevelUp] = useState(false)
+
+  // Use a ref to track the previous badge to avoid re-renders triggering it
+  // Initialize with null so we don't trigger on first load unless we want to (usually we don't)
+  const prevBadgeRef = useRef<string | null>(null)
 
   const completedTasks = tasks?.filter((task) => task.completed).length || 0
   const totalTasks = tasks?.length || 0
@@ -64,8 +76,33 @@ export default function DashboardTab({
   const progressToNextBadge = next ? totalXp - current.xpThreshold : xpForNextBadge
   const nextBadgeProgress = xpForNextBadge > 0 ? (progressToNextBadge / xpForNextBadge) * 100 : 100
 
+  useEffect(() => {
+    // If this is the first render, just set the ref
+    if (prevBadgeRef.current === null) {
+      prevBadgeRef.current = current.name;
+      return;
+    }
+
+    // If badge name changed and it's not the initial load
+    if (prevBadgeRef.current !== current.name) {
+      // Only show if we actually leveled up (index is higher)
+      const prevIndex = BADGES.findIndex(b => b.name === prevBadgeRef.current);
+      const currIndex = BADGES.findIndex(b => b.name === current.name);
+
+      if (currIndex > prevIndex) {
+        setShowLevelUp(true);
+      }
+      prevBadgeRef.current = current.name;
+    }
+  }, [current.name]);
+
   return (
     <div className="grid gap-8 md:grid-cols-3">
+      <LevelUpModal
+        isOpen={showLevelUp}
+        onClose={() => setShowLevelUp(false)}
+        badge={current}
+      />
       <div className="md:col-span-2 space-y-8">
         <Card>
           <CardHeader>
@@ -102,8 +139,8 @@ export default function DashboardTab({
               </div>
               {next && (
                 <>
-                <Progress value={nextBadgeProgress} />
-                <p className="text-sm text-muted-foreground">{progressToNextBadge} / {xpForNextBadge} XP towards next badge</p>
+                  <Progress value={nextBadgeProgress} />
+                  <p className="text-sm text-muted-foreground">{progressToNextBadge} / {xpForNextBadge} XP towards next badge</p>
                 </>
               )}
             </div>
@@ -140,32 +177,35 @@ export default function DashboardTab({
           <CardDescription>Mark off the topics as you master them.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[34rem]">
+          <ScrollArea className="h-[500px] pr-4">
             <div className="space-y-4">
               {tasks?.map((task, index) => (
                 <div key={task.id}>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-start space-x-3">
                     <Checkbox
                       id={task.id}
                       checked={task.completed}
                       onCheckedChange={(checked) =>
                         onTaskToggle(task.id, !!checked)
                       }
+                      className="mt-1"
                     />
                     <Label
                       htmlFor={task.id}
-                      className={`text-sm ${
-                        task.completed ? 'line-through text-muted-foreground' : ''
-                      }`}
+                      className={`text-sm leading-snug cursor-pointer ${task.completed ? 'line-through text-muted-foreground' : ''
+                        }`}
                     >
                       {task.text}
                     </Label>
                   </div>
-                  {index < tasks.length -1 && <Separator className="mt-4" />}
+                  {index < tasks.length - 1 && <Separator className="mt-4" />}
                 </div>
               ))}
             </div>
           </ScrollArea>
+          <p className="text-xs text-center text-muted-foreground mt-4">
+            Scroll to view all {tasks?.length || 0} tasks
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -39,17 +39,17 @@ export interface RoadmapPhase {
 }
 
 export interface SkillAnalysis {
-    skill: string;
-    priority: 'High' | 'Medium' | 'Low';
-    estimatedHours: number;
-    difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  skill: string;
+  priority: 'High' | 'Medium' | 'Low';
+  estimatedHours: number;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
 }
 
 export interface SkillGapAnalysis {
-    missingSkills: string[];
-    weakSkills: string[];
-    learningPlan: SkillAnalysis[];
-    summary: string;
+  missingSkills: string[];
+  weakSkills: string[];
+  learningPlan: SkillAnalysis[];
+  summary: string;
 }
 
 export interface RoadmapData {
@@ -62,6 +62,7 @@ export interface RoadmapData {
     desiredWeeks: number
   } | null
   roadmap: string | null
+  mindmapImage: string | null
   projects: string[] | null
   resources: MatchedResource[] | null
   tasks: Task[] | null

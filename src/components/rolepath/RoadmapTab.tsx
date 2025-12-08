@@ -1,5 +1,3 @@
-'use client'
-
 import {
   Card,
   CardContent,
@@ -13,14 +11,18 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRoadmap } from '@/lib/parser'
-import { Network, ChevronRight } from 'lucide-react'
+import { Network, ChevronRight, ImageIcon, List } from 'lucide-react'
+import Image from 'next/image'
+import Mermaid from './Mermaid'
 
 interface RoadmapTabProps {
   roadmap: string
+  mindmapImage?: string | null
 }
 
-export default function RoadmapTab({ roadmap }: RoadmapTabProps) {
+export default function RoadmapTab({ roadmap, mindmapImage }: RoadmapTabProps) {
   const roadmapPhases = parseRoadmap(roadmap)
 
   return (
@@ -35,38 +37,67 @@ export default function RoadmapTab({ roadmap }: RoadmapTabProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {roadmapPhases.length > 0 ? (
-          <Accordion type="multiple" className="w-full" defaultValue={roadmapPhases.map((_, i) => `phase-${i}`)}>
-            {roadmapPhases.map((phase, index) => (
-              <AccordionItem value={`phase-${index}`} key={index}>
-                <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline">
-                  <div className="flex flex-col text-left">
-                    <span className="text-sm font-medium text-primary">{phase.weeks}</span>
-                    Phase {index + 1}: {phase.title}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="pl-4 border-l-2 border-primary/50 ml-2">
-                  <p className="text-base font-semibold mb-3">Focus Topics:</p>
-                  <ul className="list-none space-y-3">
-                    {phase.topics.map((topic, topicIndex) => (
-                      <li key={topicIndex} className="flex items-start">
-                         <ChevronRight className="w-5 h-5 text-primary/80 mt-0.5 mr-2 shrink-0"/>
-                         <span className="text-muted-foreground">{topic.title}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        ) : (
-          <div className="text-center text-muted-foreground py-8">
-            <p>Could not parse the roadmap structure.</p>
-            <p className="text-xs mt-2">The generated text might not be in the expected format.</p>
-          </div>
-        )}
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="w-4 h-4" />
+              List View
+            </TabsTrigger>
+            <TabsTrigger value="mindmap" className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Mind Map
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            {roadmapPhases.length > 0 ? (
+              <Accordion type="multiple" className="w-full" defaultValue={roadmapPhases.map((_, i) => `phase-${i}`)}>
+                {roadmapPhases.map((phase, index) => (
+                  <AccordionItem value={`phase-${index}`} key={index}>
+                    <AccordionTrigger className="text-lg font-semibold font-headline hover:no-underline">
+                      <div className="flex flex-col text-left">
+                        <span className="text-sm font-medium text-primary">{phase.weeks}</span>
+                        Phase {index + 1}: {phase.title}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="pl-4 border-l-2 border-primary/50 ml-2">
+                        <p className="text-base font-semibold mb-3">Focus Topics:</p>
+                        <ul className="list-none space-y-3">
+                          {phase.topics.map((topic, topicIndex) => (
+                            <li key={topicIndex} className="flex items-start">
+                              <ChevronRight className="w-5 h-5 text-primary/80 mt-0.5 mr-2 shrink-0" />
+                              <span className="text-muted-foreground">{topic.title}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                <p>Could not parse the roadmap structure.</p>
+                <p className="text-xs mt-2">The generated text might not be in the expected format.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="mindmap">
+            {mindmapImage ? (
+              <div className="relative w-full border rounded-lg overflow-hidden bg-white dark:bg-slate-950">
+                <Mermaid chart={mindmapImage} />
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground py-12 border rounded-lg border-dashed">
+                <Network className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                <p>No mindmap generated.</p>
+                <p className="text-sm mt-2">Try regenerating the roadmap.</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   )

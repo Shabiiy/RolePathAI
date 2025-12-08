@@ -105,11 +105,11 @@ export const RESOURCES: Resource[] = [
   },
 ]
 
-export const TASK_XP = 10;
+export const TASK_XP = 20;
 
 export const BADGES: Badge[] = [
-    { name: 'Novice', xpThreshold: 0, icon: Award, description: 'You\'ve started your journey!' },
-    { name: 'Apprentice', xpThreshold: 100, icon: Star, description: 'Making great progress!' },
-    { name: 'Journeyman', xpThreshold: 250, icon: Shield, description: 'You\'re a skilled practitioner!' },
-    { name: 'Master', xpThreshold: 500, icon: Zap, description: 'You have mastered the path!' },
+  { name: 'Novice', xpThreshold: 0, icon: Award, description: 'You\'ve started your journey!' },
+  { name: 'Apprentice', xpThreshold: 100, icon: Star, description: 'Making great progress!' },
+  { name: 'Journeyman', xpThreshold: 300, icon: Shield, description: 'You\'re a skilled practitioner!' },
+  { name: 'Master', xpThreshold: 600, icon: Zap, description: 'You have mastered the path!' },
 ]

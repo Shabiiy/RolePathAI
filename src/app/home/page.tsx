@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { useRolePathStore } from '@/hooks/use-rolepath-store'
 import MainForm from '@/components/rolepath/MainForm'
+
 import { generateFullRoadmap } from '../actions'
 import { ROLES } from '@/lib/constants'
 import { useUser } from '@/firebase'
@@ -79,6 +80,7 @@ export default function HomePage() {
           resources: result.data.resources,
           tasks: result.data.tasks,
           analysis: result.data.analysis,
+          mindmapImage: result.data.mindmapImage,
         });
         setCurrentRoadmap(newIndex);
         toast({
@@ -153,6 +155,8 @@ export default function HomePage() {
           </Spotlight>
         </Card>
       </motion.div>
+
+
 
 
       {error && (
